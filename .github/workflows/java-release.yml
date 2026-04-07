@@ -20,27 +20,6 @@ jobs:
     concurrency:
       group: release-${{ github.repository }}-${{ github.ref }}
       cancel-in-progress: false
-    services:
-      postgres:
-        image: postgres:17
-        env:
-          POSTGRES_DB: idp
-          POSTGRES_USER: idp
-          POSTGRES_PASSWORD: idp
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U idp -d idp"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-    env:
-      DB_HOST: localhost
-      DB_PORT: 5432
-      DB_NAME: idp
-      DB_USERNAME: idp
-      DB_PASSWORD: idp
-      DB_SSL_MODE: disable
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -96,22 +75,20 @@ jobs:
           </settings>
           EOF
 
-      - name: Build with OpenAPI generation
-        if: inputs.deploy-module != ''
-        run: |
-          mvn -B -U verify -DskipTests
-        env:
-          PACKAGES_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
-
       - name: Deploy
         run: |
           set -o pipefail
           DEPLOY_REPO="-DaltDeploymentRepository=github-fireflyplatform::https://maven.pkg.github.com/${{ github.repository }}"
+          SKIP_FLAGS="-Dmaven.test.skip=true -DskipOpenApiGen"
 
           if [ -n "${{ inputs.deploy-module }}" ]; then
             echo "Deploying single module: ${{ inputs.deploy-module }}"
-            mvn -B deploy -Dmaven.test.skip=true -DskipOpenApiGen \
-              -pl ${{ inputs.deploy-module }} $DEPLOY_REPO \
+
+            # Install dependencies first
+            mvn -B -U install $SKIP_FLAGS -pl ${{ inputs.deploy-module }} -am 2>&1 | tail -5
+
+            # Deploy only the target module
+            mvn -B deploy $SKIP_FLAGS -pl ${{ inputs.deploy-module }} $DEPLOY_REPO \
               2>&1 | tee /tmp/mvn-deploy.log || {
                 if grep -q "status code: 409" /tmp/mvn-deploy.log; then
                   echo "::warning::Artifact already exists (409)"
@@ -122,7 +99,7 @@ jobs:
               }
           else
             echo "Deploying entire project"
-            mvn -B -U deploy -Dmaven.test.skip=true -DskipOpenApiGen $DEPLOY_REPO \
+            mvn -B -U deploy $SKIP_FLAGS $DEPLOY_REPO \
               2>&1 | tee /tmp/mvn-deploy.log || {
                 if grep -q "status code: 409" /tmp/mvn-deploy.log && \
                    [ -z "$(grep -i 'Failed to deploy' /tmp/mvn-deploy.log | grep -v '409' || true)" ]; then
