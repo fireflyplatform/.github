@@ -59,11 +59,17 @@ jobs:
           </settings>
           EOF
 
+      - name: Verify dependency resolution
+        run: mvn -B -U dependency:resolve -DskipTests 2>&1 || true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Extract version
         id: project-info
         run: |
-          VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          VERSION=$(mvn help:evaluate -Dexpression=project.version -DforceStdout 2>/dev/null | tail -1)
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Resolved version: $VERSION"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
