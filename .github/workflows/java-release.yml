@@ -8,6 +8,11 @@ on:
         required: false
         type: string
         default: '25'
+      deploy-module:
+        description: 'Specific module to deploy (e.g. core-idp-catalog-sdk). Leave empty to deploy the whole project.'
+        required: false
+        type: string
+        default: ''
 
 jobs:
   github-packages:
@@ -59,47 +64,31 @@ jobs:
           </settings>
           EOF
 
-      - name: Extract version
-        id: project-info
-        run: |
-          VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "Resolved version: $VERSION"
-        env:
-          PACKAGES_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
-
-      - name: Deploy to GitHub Packages
+      - name: Build and deploy
         run: |
           set -o pipefail
+          DEPLOY_REPO="-DaltDeploymentRepository=github-fireflyplatform::https://maven.pkg.github.com/${{ github.repository }}"
+          SKIP_FLAGS="-Dmaven.test.skip=true -DskipOpenApiGen"
 
-          if grep -q '<modules>' pom.xml 2>/dev/null; then
-            echo "Multi-module project detected — deploying parent POM first"
+          if [ -n "${{ inputs.deploy-module }}" ]; then
+            echo "Deploying single module: ${{ inputs.deploy-module }}"
 
-            mvn -B -U deploy -Dmaven.test.skip=true -DskipOpenApiGen -N \
-              -DaltDeploymentRepository=github-fireflyplatform::https://maven.pkg.github.com/${{ github.repository }} \
-              2>&1 | tee /tmp/mvn-parent.log || {
-                if grep -q "status code: 409" /tmp/mvn-parent.log; then
-                  echo "::notice::Parent POM already exists (409) — continuing with modules"
+            # Install dependencies first
+            mvn -B -U install $SKIP_FLAGS -pl ${{ inputs.deploy-module }} -am 2>&1 | tail -5
+
+            # Deploy only the target module
+            mvn -B deploy $SKIP_FLAGS -pl ${{ inputs.deploy-module }} $DEPLOY_REPO \
+              2>&1 | tee /tmp/mvn-deploy.log || {
+                if grep -q "status code: 409" /tmp/mvn-deploy.log; then
+                  echo "::warning::Artifact already exists (409)"
                 else
-                  echo "::error::Parent POM deploy failed"
-                  exit 1
-                fi
-              }
-
-            mvn -B -U deploy -Dmaven.test.skip=true -DskipOpenApiGen -pl '!.' \
-              -DaltDeploymentRepository=github-fireflyplatform::https://maven.pkg.github.com/${{ github.repository }} \
-              2>&1 | tee /tmp/mvn-modules.log || {
-                NON_409=$(grep -i "Failed to deploy" /tmp/mvn-modules.log | grep -v "409" || true)
-                if [ -z "$NON_409" ]; then
-                  echo "::warning::Some modules already exist (409)"
-                else
-                  echo "::error::Module deploy failed"
+                  echo "::error::Deploy failed"
                   exit 1
                 fi
               }
           else
-            mvn -B -U deploy -Dmaven.test.skip=true -DskipOpenApiGen \
-              -DaltDeploymentRepository=github-fireflyplatform::https://maven.pkg.github.com/${{ github.repository }} \
+            echo "Deploying entire project"
+            mvn -B -U deploy $SKIP_FLAGS $DEPLOY_REPO \
               2>&1 | tee /tmp/mvn-deploy.log || {
                 if grep -q "status code: 409" /tmp/mvn-deploy.log && \
                    [ -z "$(grep -i 'Failed to deploy' /tmp/mvn-deploy.log | grep -v '409' || true)" ]; then
@@ -120,12 +109,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Set up JDK ${{ inputs.java-version }}
-        uses: actions/setup-java@v4
-        with:
-          java-version: ${{ inputs.java-version }}
-          distribution: temurin
 
       - name: Extract version
         id: version
