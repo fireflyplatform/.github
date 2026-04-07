@@ -35,7 +35,12 @@ jobs:
                     xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 https://maven.apache.org/xsd/settings-1.0.0.xsd">
             <servers>
               <server>
-                <id>github-fireflyplatform</id>
+                <id>github-idp-parent</id>
+                <username>${env.GITHUB_ACTOR}</username>
+                <password>${env.GITHUB_TOKEN}</password>
+              </server>
+              <server>
+                <id>github-idp-bom</id>
                 <username>${env.GITHUB_ACTOR}</username>
                 <password>${env.GITHUB_TOKEN}</password>
               </server>
@@ -45,8 +50,14 @@ jobs:
                 <id>github-packages</id>
                 <repositories>
                   <repository>
-                    <id>github-fireflyplatform</id>
+                    <id>github-idp-parent</id>
                     <url>https://maven.pkg.github.com/fireflyplatform/idp-backend-parent</url>
+                    <snapshots><enabled>true</enabled></snapshots>
+                    <releases><enabled>true</enabled></releases>
+                  </repository>
+                  <repository>
+                    <id>github-idp-bom</id>
+                    <url>https://maven.pkg.github.com/fireflyplatform/idp-backend-bom</url>
                     <snapshots><enabled>true</enabled></snapshots>
                     <releases><enabled>true</enabled></releases>
                   </repository>
@@ -81,7 +92,7 @@ jobs:
             echo "Multi-module project detected — deploying parent POM first"
 
             mvn -B -U deploy -DskipTests -N \
-              -DaltDeploymentRepository=github-fireflyplatform::https://maven.pkg.github.com/${{ github.repository }} \
+              -DaltDeploymentRepository=github-idp-parent::https://maven.pkg.github.com/${{ github.repository }} \
               2>&1 | tee /tmp/mvn-parent.log || {
                 if grep -q "status code: 409" /tmp/mvn-parent.log; then
                   echo "::notice::Parent POM already exists (409) — continuing with modules"
@@ -92,7 +103,7 @@ jobs:
               }
 
             mvn -B -U deploy -DskipTests -pl '!.' \
-              -DaltDeploymentRepository=github-fireflyplatform::https://maven.pkg.github.com/${{ github.repository }} \
+              -DaltDeploymentRepository=github-idp-parent::https://maven.pkg.github.com/${{ github.repository }} \
               2>&1 | tee /tmp/mvn-modules.log || {
                 NON_409=$(grep -i "Failed to deploy" /tmp/mvn-modules.log | grep -v "409" || true)
                 if [ -z "$NON_409" ]; then
@@ -104,7 +115,7 @@ jobs:
               }
           else
             mvn -B -U deploy -DskipTests \
-              -DaltDeploymentRepository=github-fireflyplatform::https://maven.pkg.github.com/${{ github.repository }} \
+              -DaltDeploymentRepository=github-idp-parent::https://maven.pkg.github.com/${{ github.repository }} \
               2>&1 | tee /tmp/mvn-deploy.log || {
                 if grep -q "status code: 409" /tmp/mvn-deploy.log && \
                    [ -z "$(grep -i 'Failed to deploy' /tmp/mvn-deploy.log | grep -v '409' || true)" ]; then

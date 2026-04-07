@@ -47,7 +47,12 @@ jobs:
                     xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 https://maven.apache.org/xsd/settings-1.0.0.xsd">
             <servers>
               <server>
-                <id>github-fireflyplatform</id>
+                <id>github-idp-parent</id>
+                <username>${env.GITHUB_ACTOR}</username>
+                <password>${env.GITHUB_TOKEN}</password>
+              </server>
+              <server>
+                <id>github-idp-bom</id>
                 <username>${env.GITHUB_ACTOR}</username>
                 <password>${env.GITHUB_TOKEN}</password>
               </server>
@@ -57,8 +62,14 @@ jobs:
                 <id>github-packages</id>
                 <repositories>
                   <repository>
-                    <id>github-fireflyplatform</id>
+                    <id>github-idp-parent</id>
                     <url>https://maven.pkg.github.com/fireflyplatform/idp-backend-parent</url>
+                    <snapshots><enabled>true</enabled></snapshots>
+                    <releases><enabled>true</enabled></releases>
+                  </repository>
+                  <repository>
+                    <id>github-idp-bom</id>
+                    <url>https://maven.pkg.github.com/fireflyplatform/idp-backend-bom</url>
                     <snapshots><enabled>true</enabled></snapshots>
                     <releases><enabled>true</enabled></releases>
                   </repository>
