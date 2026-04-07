@@ -130,7 +130,7 @@ jobs:
       - name: Extract version
         id: version
         run: |
-          VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          VERSION=$(grep -m1 '<version>' pom.xml | sed 's/.*<version>//' | sed 's/<\/version>.*//' | xargs)
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Create or update GitHub Release
