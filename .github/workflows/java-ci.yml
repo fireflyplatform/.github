@@ -45,14 +45,9 @@ jobs:
                     xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 https://maven.apache.org/xsd/settings-1.0.0.xsd">
             <servers>
               <server>
-                <id>github-idp-parent</id>
+                <id>github-fireflyplatform</id>
                 <username>${env.GITHUB_ACTOR}</username>
-                <password>${env.GITHUB_TOKEN}</password>
-              </server>
-              <server>
-                <id>github-idp-bom</id>
-                <username>${env.GITHUB_ACTOR}</username>
-                <password>${env.GITHUB_TOKEN}</password>
+                <password>${env.PACKAGES_TOKEN}</password>
               </server>
             </servers>
             <profiles>
@@ -60,14 +55,8 @@ jobs:
                 <id>github-packages</id>
                 <repositories>
                   <repository>
-                    <id>github-idp-parent</id>
+                    <id>github-fireflyplatform</id>
                     <url>https://maven.pkg.github.com/fireflyplatform/idp-backend-parent</url>
-                    <snapshots><enabled>true</enabled></snapshots>
-                    <releases><enabled>true</enabled></releases>
-                  </repository>
-                  <repository>
-                    <id>github-idp-bom</id>
-                    <url>https://maven.pkg.github.com/fireflyplatform/idp-backend-bom</url>
                     <snapshots><enabled>true</enabled></snapshots>
                     <releases><enabled>true</enabled></releases>
                   </repository>
@@ -83,7 +72,7 @@ jobs:
       - name: Build with Maven
         run: mvn -B -U ${{ inputs.maven-goals }} ${{ inputs.maven-args }}
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PACKAGES_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
 
       - name: Upload test reports
         if: always()
