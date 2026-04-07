@@ -49,6 +49,11 @@ jobs:
                 <username>${env.GITHUB_ACTOR}</username>
                 <password>${env.PACKAGES_TOKEN}</password>
               </server>
+              <server>
+                <id>github-fireflyframework</id>
+                <username>${env.GITHUB_ACTOR}</username>
+                <password>${env.PACKAGES_TOKEN}</password>
+              </server>
             </servers>
             <profiles>
               <profile>
@@ -57,6 +62,12 @@ jobs:
                   <repository>
                     <id>github-fireflyplatform</id>
                     <url>https://maven.pkg.github.com/fireflyplatform/idp-backend-parent</url>
+                    <snapshots><enabled>true</enabled></snapshots>
+                    <releases><enabled>true</enabled></releases>
+                  </repository>
+                  <repository>
+                    <id>github-fireflyframework</id>
+                    <url>https://maven.pkg.github.com/fireflyframework/fireflyframework-parent</url>
                     <snapshots><enabled>true</enabled></snapshots>
                     <releases><enabled>true</enabled></releases>
                   </repository>
