@@ -88,7 +88,7 @@ jobs:
       - name: Build with OpenAPI generation
         if: inputs.deploy-module != ''
         run: |
-          mvn -B -U verify -Dmaven.test.skip=true
+          mvn -B -U verify -DskipTests
         env:
           PACKAGES_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
 
