@@ -75,7 +75,7 @@ jobs:
           if grep -q '<modules>' pom.xml 2>/dev/null; then
             echo "Multi-module project detected — deploying parent POM first"
 
-            mvn -B -U deploy -DskipTests -N \
+            mvn -B -U deploy -Dmaven.test.skip=true -DskipOpenApiGen -N \
               -DaltDeploymentRepository=github-fireflyplatform::https://maven.pkg.github.com/${{ github.repository }} \
               2>&1 | tee /tmp/mvn-parent.log || {
                 if grep -q "status code: 409" /tmp/mvn-parent.log; then
@@ -86,7 +86,7 @@ jobs:
                 fi
               }
 
-            mvn -B -U deploy -DskipTests -pl '!.' \
+            mvn -B -U deploy -Dmaven.test.skip=true -DskipOpenApiGen -pl '!.' \
               -DaltDeploymentRepository=github-fireflyplatform::https://maven.pkg.github.com/${{ github.repository }} \
               2>&1 | tee /tmp/mvn-modules.log || {
                 NON_409=$(grep -i "Failed to deploy" /tmp/mvn-modules.log | grep -v "409" || true)
@@ -98,7 +98,7 @@ jobs:
                 fi
               }
           else
-            mvn -B -U deploy -DskipTests \
+            mvn -B -U deploy -Dmaven.test.skip=true -DskipOpenApiGen \
               -DaltDeploymentRepository=github-fireflyplatform::https://maven.pkg.github.com/${{ github.repository }} \
               2>&1 | tee /tmp/mvn-deploy.log || {
                 if grep -q "status code: 409" /tmp/mvn-deploy.log && \
