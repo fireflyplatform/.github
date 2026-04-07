@@ -82,15 +82,10 @@ jobs:
         env:
           PACKAGES_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
 
-      - name: Build all modules
-        run: mvn -B -U package -Dmaven.test.skip=true
-        env:
-          PACKAGES_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
-
-      - name: Build container image
+      - name: Build and create container image
         run: |
-          mvn -B -pl ${{ inputs.web-module }} \
-            spring-boot:build-image \
+          mvn -B -U -pl ${{ inputs.web-module }} -am \
+            package spring-boot:build-image \
             -Pbuild-image \
             -Dmaven.test.skip=true \
             -Ddocker.image.platform=${{ inputs.image-platform }}
